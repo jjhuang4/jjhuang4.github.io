@@ -1,8 +1,8 @@
 project:
   type: website
-  output-dir: docs
+
 website:
-  title: "my-blog"
+  title: "personal-site"
   navbar:
     right:
       - about.qmd
