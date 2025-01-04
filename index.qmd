@@ -1,5 +1,5 @@
 ---
-title: "personal-site"
+title: "Jeffrey Huang"
 listing:
   contents: posts
   sort: "date desc"
