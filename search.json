@@ -25,6 +25,6 @@
     "href": "posts/post-with-code/index.html",
     "title": "Post With Code",
     "section": "",
-    "text": "This is a post with executable code."
+    "text": "This is a post with executable code.\n\nlibrary(astsa)\nprint(\"test cell\")\n\n[1] \"test cell\"\n\n\n\nenergy &lt;- read.csv(\"electricity.csv\")\nView(energy)"
   }
 ]
