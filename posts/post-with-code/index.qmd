@@ -13,8 +13,5 @@ library(astsa)
 print("test cell")
 ```
 
-```{r}
-energy <- read.csv("electricity.csv")
-View(energy)
-```
+
 

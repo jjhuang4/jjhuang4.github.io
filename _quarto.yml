@@ -1,6 +1,5 @@
 project:
   type: website
-  output-dir: docs
 website:
   title: "personal-site"
   navbar:
