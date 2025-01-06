@@ -30,6 +30,9 @@ jobs:
         with:
           r-version: '4.2.0'
 
+      - name: Set up renv.lock file
+        run: Rscript genenv.R
+
       - name: Install R Dependencies
         uses: r-lib/actions/setup-renv@v2
         with:
