@@ -6,14 +6,13 @@ about:
   links:
     - icon: twitter
       text: Twitter
-      href: https://twitter.com
+      href: https://x.com/huang19948
     - icon: linkedin
       text: LinkedIn
-      href: https://linkedin.com
+      href: https://www.linkedin.com/in/jeffreyhuang4/
     - icon: github
       text: Github
-      href: https://github.com
-
+      href: https://github.com/jjhuang4
 ---
 
 About this blog
