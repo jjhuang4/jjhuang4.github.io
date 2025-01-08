@@ -14,20 +14,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: datasci-env
-          environment-file: environment.yml
-          python-version: 3.12
+      # - name: Set up Miniconda
+      #   uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     activate-environment: datasci-env
+      #     environment-file: environment.yml
+      #     python-version: 3.12
 
-      - name: Cache Conda
-        uses: actions/cache@v3
-        with:
-          path: ~/.conda/envs
-          key: ${{ runner.os }}-conda-${{ hashFiles('environment.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-conda-
+      # - name: Cache Conda
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/.conda/envs
+      #     key: ${{ runner.os }}-conda-${{ hashFiles('environment.yml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-conda-
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2

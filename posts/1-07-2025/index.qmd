@@ -3,7 +3,6 @@ title: "Using a conda environment with Quarto markdown"
 author: "Jeffrey Huang"
 date: "2025-01-07"
 categories: [news, code, analysis]
-engine: knitr
 ---
 
 This is a post with executable code.
