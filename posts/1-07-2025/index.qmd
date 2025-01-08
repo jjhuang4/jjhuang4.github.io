@@ -8,7 +8,7 @@ categories: [news, code, analysis]
 This is a post with executable code.
 ```{r}
 #|  label: change-lib-paths
-.libPaths(c(.libPaths(), "C:/Users/jrh25/miniforge3/envs/datasci-env/Lib/R/library"))
+#.libPaths(c(.libPaths(), "C:/Users/jrh25/miniforge3/envs/datasci-env/Lib/R/library"))
 .libPaths()
 ```
 
@@ -16,8 +16,8 @@ This is a post with executable code.
 library(tidyverse)
 library(forecast)
 library(GGally)
-library(reticulate)
-use_condaenv(condaenv="datasci-env", conda="C:/Users/jrh25/miniforge3/condabin/conda.bat")
+# library(reticulate)
+# use_condaenv(condaenv="datasci-env", conda="C:/Users/jrh25/miniforge3/condabin/conda.bat")
 
 print("test cells")
 ```
@@ -38,7 +38,6 @@ energy %>% slice_head(n=5)
 import pandas as pd
 import numpy as np
 
-print(r.energy)
 print(type(r.energy))
 
 energy = pd.DataFrame(r.energy)
