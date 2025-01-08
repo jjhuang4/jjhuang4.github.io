@@ -19,15 +19,10 @@ print("test cells")
 #| echo: false
 #| cache: true
 #| label: read-data
-energy <- readr::read_csv("posts/1-07-2025/electricity.csv")
+energy <- readr::read_csv("./posts/1-07-2025/electricity.csv")
 ```
 
 ```{r}
-View(energy)
+energy %>% slice_head(n=5)
 ```
 
-
-```{r}
-
-
-```
