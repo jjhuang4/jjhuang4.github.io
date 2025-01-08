@@ -1,0 +1,16 @@
+---
+title: "Testing with knitr engine"
+author: "Jeffrey Huang"
+date: "2025-01-08"
+categories: [news, code, analysis]
+engine: knitr
+---
+
+```{r}
+.libPaths()
+```
+
+```{r}
+library(reticulate)
+py_config()
+```
