@@ -3,11 +3,9 @@ title: "Testing with knitr engine"
 author: "Jeffrey Huang"
 date: "2025-01-08"
 categories: [news, code, analysis]
-engine: knitr
 ---
 
 ```{r}
-.libPaths(c("C:/Users/jrh25/miniforge3/envs/datasci-env/Lib/R/library", .libPaths()))
 .libPaths()
 ```
 
@@ -15,4 +13,22 @@ engine: knitr
 library(reticulate)
 py_config()
 getwd()
+```
+
+```{python}
+import pandas as pd
+import numpy as np
+
+arr = np.array([1, 2, 3, 4, 5])
+arr
+```
+
+```{r}
+arr <- py$arr
+print(arr)
+```
+
+```{python}
+r['arr']
+r.arr
 ```
