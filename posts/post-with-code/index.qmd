@@ -9,8 +9,7 @@ image: "image.jpg"
 This is a post with executable code.
 
 ```{r}
-library(astsa)
-print("test cell")
+print("test cells")
 ```
 
 

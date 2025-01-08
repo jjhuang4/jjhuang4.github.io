@@ -1,0 +1,33 @@
+---
+title: "Using a conda environment with Quarto markdown"
+author: "Jeffrey Huang"
+date: "2025-01-07"
+categories: [news, code, analysis]
+engine: knitr
+---
+
+This is a post with executable code.
+
+```{r}
+library(tidyverse)
+library(forecast)
+library(GGally)
+print("test cells")
+```
+
+```{r}
+#| echo: false
+#| cache: true
+#| label: read-data
+energy <- readr::read_csv("posts/1-07-2025/electricity.csv")
+```
+
+```{r}
+View(energy)
+```
+
+
+```{r}
+
+
+```
