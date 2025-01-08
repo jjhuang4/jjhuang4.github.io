@@ -19,7 +19,7 @@ print("test cells")
 #| echo: false
 #| cache: true
 #| label: read-data
-energy <- readr::read_csv("./posts/1-07-2025/electricity.csv")
+energy <- readr::read_csv("C:/Users/jrh25/Desktop/personal-site/data/electricity.csv")
 ```
 
 ```{r}
