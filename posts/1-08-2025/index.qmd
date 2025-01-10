@@ -11,6 +11,10 @@ R.home()
 ```
 
 ```{r}
+R.home()
+```
+
+```{r}
 library(reticulate)
 py_config()
 getwd()
