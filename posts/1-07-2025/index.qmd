@@ -8,7 +8,7 @@ categories: [news, code, analysis]
 This is a post with executable code.
 ```{r}
 #|  label: change-lib-paths
-#.libPaths(c(.libPaths(), "C:/Users/jrh25/miniforge3/envs/datasci-env/Lib/R/library"))
+# .libPaths(c(.libPaths(), "C:/Users/jrh25/miniforge3/envs/datasci-env/Lib/R/library"))
 .libPaths()
 ```
 
@@ -42,5 +42,10 @@ print(type(r.energy))
 
 energy = pd.DataFrame(r.energy)
 energy.head()
+```
+
+```{r}
+library(reticulate)
+py_config()
 ```
 
