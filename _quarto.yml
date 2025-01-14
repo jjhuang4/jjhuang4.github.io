@@ -13,7 +13,7 @@ website:
         href: https://x.com/huang19948
 format:
   html:
-    theme: lux
+    theme: slate
     css: styles.css
 execute:
   freeze: auto
