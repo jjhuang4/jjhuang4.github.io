@@ -1,7 +1,7 @@
 project:
   type: website
 website:
-  title: "Jeffrey Huang's Blog"
+  title: "Jeffrey Huang"
   navbar:
     right:
       - about.qmd
@@ -13,7 +13,7 @@ website:
         href: https://x.com/huang19948
 format:
   html:
-    theme: yeti
+    theme: lux
     css: styles.css
 execute:
   freeze: auto
