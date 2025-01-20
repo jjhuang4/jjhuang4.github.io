@@ -9,8 +9,8 @@ website:
         href: https://github.com/jjhuang4
       - icon: linkedin
         href: https://www.linkedin.com/in/jeffreyhuang4/
-      - icon: twitter
-        href: https://x.com/huang19948
+      # - icon: twitter
+      #   href: https://x.com/huang19948
 format:
   html:
     theme: lux

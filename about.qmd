@@ -4,9 +4,9 @@ image: profile.jpg
 about:
   template: jolla
   links:
-    - icon: twitter
-      text: Twitter
-      href: https://x.com/huang19948
+    # - icon: twitter
+    #   text: Twitter
+    #   href: https://x.com/huang19948
     - icon: linkedin
       text: LinkedIn
       href: https://www.linkedin.com/in/jeffreyhuang4/

@@ -2,3 +2,5 @@
 /.venv/
 /docs/
 /_site/
+/data
+/examples
