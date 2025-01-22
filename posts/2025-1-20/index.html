@@ -9,7 +9,7 @@
 <meta name="author" content="Jeffrey Huang">
 <meta name="dcterms.date" content="2025-01-20">
 
-<title>A look at Prophet’s forecasting viability – Jeffrey Huang</title>
+<title>Benchmarking Model Performance on Electricity Demand Forecasting – Jeffrey Huang</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -22,10 +22,44 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -68,7 +102,39 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
 
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="../../styles.css">
 </head>
@@ -115,7 +181,7 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">A look at Prophet’s forecasting viability</h1>
+      <h1 class="title">Benchmarking Model Performance on Electricity Demand Forecasting</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">time-series</div>
                 <div class="quarto-category">forecasting</div>
@@ -157,6 +223,167 @@ ul.task-list li input[type="checkbox"] {
 
 <p>Forecasting electricity demand is an extremely relevant problem for energy providers, as it influences not only the cost of day to day operations but also the timeliness and effectiveness of preparing for extreme weather conditions. Additionally, providers have to account for variations in geographic locations, further increasing the complexity of forecasting tasks.</p>
 <p>In this blog post, I aim to explore the applications and performance of several forecasting methods for this task. I’m specifically using the Australian New South Wales Electricity Market dataset, which features the electricity price and demand of New South Wales and Victoria, as well as the amount transferred between the two states.</p>
+<p>The data contains 45,312 instances for the days from May 7, 1996 to December 5, 1998, with observations recorded every half hour in each 24 hour period. I account for this granularity in my approach.</p>
+<div id="cell-4" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>electricity.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">date</th>
+<th data-quarto-table-cell-role="th">day</th>
+<th data-quarto-table-cell-role="th">period</th>
+<th data-quarto-table-cell-role="th">nswprice</th>
+<th data-quarto-table-cell-role="th">nswdemand</th>
+<th data-quarto-table-cell-role="th">vicprice</th>
+<th data-quarto-table-cell-role="th">vicdemand</th>
+<th data-quarto-table-cell-role="th">transfer</th>
+<th data-quarto-table-cell-role="th">class</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0.0</td>
+<td>2</td>
+<td>0.000000</td>
+<td>0.056443</td>
+<td>0.439155</td>
+<td>0.003467</td>
+<td>0.422915</td>
+<td>0.414912</td>
+<td>UP</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0.0</td>
+<td>2</td>
+<td>0.021277</td>
+<td>0.051699</td>
+<td>0.415055</td>
+<td>0.003467</td>
+<td>0.422915</td>
+<td>0.414912</td>
+<td>UP</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0.0</td>
+<td>2</td>
+<td>0.042553</td>
+<td>0.051489</td>
+<td>0.385004</td>
+<td>0.003467</td>
+<td>0.422915</td>
+<td>0.414912</td>
+<td>UP</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0.0</td>
+<td>2</td>
+<td>0.063830</td>
+<td>0.045485</td>
+<td>0.314639</td>
+<td>0.003467</td>
+<td>0.422915</td>
+<td>0.414912</td>
+<td>UP</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0.0</td>
+<td>2</td>
+<td>0.085106</td>
+<td>0.042482</td>
+<td>0.251116</td>
+<td>0.003467</td>
+<td>0.422915</td>
+<td>0.414912</td>
+<td>DOWN</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>The data has a very fine level of granularity, making for a highly dense time series plot for the entire series. Right off the bat we can observe a longer term seasonality in the trend line of the graph.</p>
+<div id="cell-6" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(electricity[<span class="st">'nswdemand'</span>])</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(electricity[<span class="st">'nswprice'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-5-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Plotting a couple smaller length sections of the series (in intervals of 1000 observations) lets us see smaller scale seasonalities, which are immediately discernable.</p>
+<div id="cell-8" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-9" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(electricity[<span class="st">'nswdemand'</span>][<span class="dv">20000</span>:<span class="dv">21000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The magnitude of seasonal variations doesn’t appear to be influenced by the length of the time series, so I assume an additive decomposition to be the most appropriate such that</p>
+<p><span class="math inline">\(y_t = S_t + T_t + R_t\)</span></p>
+<p>where data is decomposed into seasonal, trend, and remainder components respectively.</p>
+<div id="cell-11" class="cell" data-execution_count="43">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>transformer <span class="op">=</span> Deseasonalizer(model<span class="op">=</span><span class="st">'additive'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>decomposed <span class="op">=</span> transformer.fit_transform(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(decomposed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-12" class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="33">
+<pre><code>0       0.439155
+1       0.415055
+2       0.385004
+3       0.314639
+4       0.251116
+          ...   
+9995    0.098929
+9996    0.124665
+9997    0.165427
+9998    0.215412
+9999    0.250967
+Name: nswdemand, Length: 10000, dtype: float64</code></pre>
+</div>
+</div>
 
 
 
