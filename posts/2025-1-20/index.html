@@ -9,7 +9,7 @@
 <meta name="author" content="Jeffrey Huang">
 <meta name="dcterms.date" content="2025-01-20">
 
-<title>Benchmarking Model Performance on Electricity Demand Forecasting – Jeffrey Huang</title>
+<title>Benchmarking Model Performance on Australian Electricity Demand Forecasting – Jeffrey Huang</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -74,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-096a3e80ce2fc443ab554b28b562d874.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-27208713591bdc81d15d2ab76ca6d3ec.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -181,7 +181,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Benchmarking Model Performance on Electricity Demand Forecasting</h1>
+      <h1 class="title">Benchmarking Model Performance on Australian Electricity Demand Forecasting</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">time-series</div>
                 <div class="quarto-category">forecasting</div>
@@ -452,7 +452,9 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>Prophet is a model developed by Facebook for use in commercial forecasting applications; it has strong out of the box performance in data containing multiple seasonalities and holiday effects. I use a downgraded 1.1.5 version of Prophet due to optimization errors that arise with the 1.1.6 version.</p>
-<div id="cell-19" class="cell" data-execution_count="130">
+<p>While the smallest level of granularity in some time series occurs through daily instances, this dataset has observations ever half-hour, meaning the period should be 48 for daily seasonality, 336 for weekly, and so on. We’ll have to add these as custom seasonalities to our Prophet model; this is accomplished by adding new custom seasonalities using the add_seasonality argument provided by the sktime wrapper.</p>
+<p>Since we’re using sktime, it has a slightly different way of handling add_seasonality() than in fbprophet; we have to add multiple custom seasonalities as a list of dictionaries to the constructor.</p>
+<div id="cell-19" class="cell" data-execution_count="157">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> electricity[<span class="st">'nswdemand'</span>]</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>y_train, y_test <span class="op">=</span> temporal_train_test_split(y, test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> Prophet(</span>
@@ -469,16 +471,21 @@ dtype: int64</code></pre>
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    {</span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'weekly-cycle'</span>,</span>
 <span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">336</span>, <span class="co"># period of 336 representing 7 day (weekly) cycle</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">6</span></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    }]</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">3</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'yearly-cycle'</span>,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">17520</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">10</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    }]</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>17:44:27 - cmdstanpy - INFO - Chain [1] start processing
-17:45:14 - cmdstanpy - INFO - Chain [1] done processing</code></pre>
+<pre><code>19:06:49 - cmdstanpy - INFO - Chain [1] start processing
+19:07:16 - cmdstanpy - INFO - Chain [1] done processing</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="130">
-<style>#sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 {
+<div class="cell-output cell-output-display" data-execution_count="157">
+<style>#sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 {
     /* Definition of color scheme common for light and dark mode */
     --sklearn-color-text: black;
     --sklearn-color-line: gray;
@@ -503,15 +510,15 @@ dtype: int64</code></pre>
     }
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 {
     color: var(--sklearn-color-text);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 pre {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 pre {
     padding: 0;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 input.sk-hidden--visually {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-hidden--visually {
     border: 0;
     clip: rect(1px 1px 1px 1px);
     clip: rect(1px, 1px, 1px, 1px);
@@ -523,7 +530,7 @@ dtype: int64</code></pre>
     width: 1px;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-dashed-wrapped {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-dashed-wrapped {
     border: 1px dashed var(--sklearn-color-line);
     margin: 0 0.4em 0.5em 0.4em;
     box-sizing: border-box;
@@ -531,7 +538,7 @@ dtype: int64</code></pre>
     background-color: var(--sklearn-color-background);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-container {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-container {
     /* jupyter's `normalize.less` sets `[hidden] { display: none; }`
        but bootstrap.min.css set `[hidden] { display: none !important; }`
        so we also need the `!important` here to be able to override the
@@ -541,7 +548,7 @@ dtype: int64</code></pre>
     position: relative;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-text-repr-fallback {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-text-repr-fallback {
     display: none;
   }
 
@@ -557,14 +564,14 @@ dtype: int64</code></pre>
 
   /* Parallel-specific style estimator block */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel-item::after {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item::after {
     content: "";
     width: 100%;
     border-bottom: 2px solid var(--sklearn-color-text-on-default-background);
     flex-grow: 1;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel {
     display: flex;
     align-items: stretch;
     justify-content: center;
@@ -572,28 +579,28 @@ dtype: int64</code></pre>
     position: relative;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel-item {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item {
     display: flex;
     flex-direction: column;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel-item:first-child::after {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:first-child::after {
     align-self: flex-end;
     width: 50%;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel-item:last-child::after {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:last-child::after {
     align-self: flex-start;
     width: 50%;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-parallel-item:only-child::after {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:only-child::after {
     width: 0;
   }
 
   /* Serial-specific style estimator block */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-serial {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-serial {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -611,14 +618,14 @@ dtype: int64</code></pre>
 
   /* Pipeline and ColumnTransformer style (default) */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-toggleable {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable {
     /* Default theme specific background. It is overwritten whether we have a
     specific estimator or a Pipeline/ColumnTransformer */
     background-color: var(--sklearn-color-background);
   }
 
   /* Toggleable label */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 label.sk-toggleable__label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label {
     cursor: pointer;
     display: block;
     width: 100%;
@@ -628,7 +635,7 @@ dtype: int64</code></pre>
     text-align: center;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 label.sk-toggleable__label-arrow:before {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label-arrow:before {
     /* Arrow on the left of the label */
     content: "▸";
     float: left;
@@ -636,13 +643,13 @@ dtype: int64</code></pre>
     color: var(--sklearn-color-icon);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 label.sk-toggleable__label-arrow:hover:before {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label-arrow:hover:before {
     color: var(--sklearn-color-text);
   }
 
   /* Toggleable content - dropdown */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-toggleable__content {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable__content {
     max-height: 0;
     max-width: 0;
     overflow: hidden;
@@ -650,27 +657,27 @@ dtype: int64</code></pre>
     background-color: var(--sklearn-color-level-0);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-toggleable__content pre {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable__content pre {
     margin: 0.2em;
     border-radius: 0.25em;
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-0);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 input.sk-toggleable__control:checked~div.sk-toggleable__content {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-toggleable__control:checked~div.sk-toggleable__content {
     /* Expand drop-down */
     max-height: 200px;
     max-width: 100%;
     overflow: auto;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
     content: "▾";
   }
 
   /* Pipeline/ColumnTransformer-specific style */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-2);
   }
@@ -678,38 +685,38 @@ dtype: int64</code></pre>
   /* Estimator-specific style */
 
   /* Colorize estimator box */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
     /* unfitted */
     background-color: var(--sklearn-color-level-2);
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label label.sk-toggleable__label,
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label.sk-toggleable__label,
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label {
     /* The background is the default theme color */
     color: var(--sklearn-color-text-on-default-background);
   }
 
   /* On hover, darken the color of the background */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label:hover label.sk-toggleable__label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label:hover label.sk-toggleable__label {
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-2);
   }
 
   /* Estimator label */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label label {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label {
     font-family: monospace;
     font-weight: bold;
     display: inline-block;
     line-height: 1.2em;
   }
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-label-container {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label-container {
     text-align: center;
   }
 
   /* Estimator-specific */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-estimator {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator {
     font-family: monospace;
     border: 1px dotted var(--sklearn-color-border-box);
     border-radius: 0.25em;
@@ -719,7 +726,7 @@ dtype: int64</code></pre>
   }
 
   /* on hover */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 div.sk-estimator:hover {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator:hover {
     background-color: var(--sklearn-color-level-2);
   }
 
@@ -776,7 +783,7 @@ dtype: int64</code></pre>
 
   /* "?"-specific style due to the `<a>` HTML tag */
 
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 a.estimator_doc_link {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 a.estimator_doc_link {
     float: right;
     font-size: 1rem;
     line-height: 1em;
@@ -791,27 +798,32 @@ dtype: int64</code></pre>
   }
 
   /* On hover */
-  #sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559 a.estimator_doc_link:hover {
+  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 a.estimator_doc_link:hover {
     background-color: var(--sklearn-color-level-3);
     color: var(--sklearn-color-background);
     text-decoration: none;
   }
-</style><div id="sk-a9bd22f9-8e81-42ac-a752-d4e36e0ad559" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
+</style><div id="sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
         add_seasonality=[{'fourier_order': 12, 'name': 'daily-cycle',
                           'period': 48},
-                         {'fourier_order': 6, 'name': 'weekly-cycle',
-                          'period': 336}],
+                         {'fourier_order': 3, 'name': 'weekly-cycle',
+                          'period': 336},
+                         {'fourier_order': 10, 'name': 'yearly-cycle',
+                          'period': 17520}],
         daily_seasonality=True, weekly_seasonality=True,
-        yearly_seasonality=True)</pre><b>Please rerun this cell to show the HTML repr or trust the notebook.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="UUID('1a730acc-138d-4fa8-9851-ef329645ac41')" type="checkbox" checked=""><label for="UUID('1a730acc-138d-4fa8-9851-ef329645ac41')" class="sk-toggleable__label sk-toggleable__label-arrow">Prophet<a class="sk-estimator-doc-link" rel="noreferrer" target="_blank" href="https://www.sktime.net/en/v0.35.0/api_reference/auto_generated/sktime.forecasting.fbprophet.Prophet.html">?<span>Documentation for Prophet</span></a></label><div class="sk-toggleable__content"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
+        yearly_seasonality=True)</pre><b>Please rerun this cell to show the HTML repr or trust the notebook.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="UUID('93e03925-fc87-4bdd-857a-123f7f330cb8')" type="checkbox" checked=""><label for="UUID('93e03925-fc87-4bdd-857a-123f7f330cb8')" class="sk-toggleable__label sk-toggleable__label-arrow">Prophet<a class="sk-estimator-doc-link" rel="noreferrer" target="_blank" href="https://www.sktime.net/en/v0.35.0/api_reference/auto_generated/sktime.forecasting.fbprophet.Prophet.html">?<span>Documentation for Prophet</span></a></label><div class="sk-toggleable__content"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
         add_seasonality=[{'fourier_order': 12, 'name': 'daily-cycle',
                           'period': 48},
-                         {'fourier_order': 6, 'name': 'weekly-cycle',
-                          'period': 336}],
+                         {'fourier_order': 3, 'name': 'weekly-cycle',
+                          'period': 336},
+                         {'fourier_order': 10, 'name': 'yearly-cycle',
+                          'period': 17520}],
         daily_seasonality=True, weekly_seasonality=True,
         yearly_seasonality=True)</pre></div></div></div></div></div>
 </div>
 </div>
-<div id="cell-20" class="cell" data-execution_count="131">
+<p>We then evaluate model performance with mean average percentage error, mean absolute error, and mean squared error.</p>
+<div id="cell-21" class="cell" data-execution_count="158">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify forecasting horizon and pass on to forecasting algorithm</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
@@ -819,15 +831,17 @@ dtype: int64</code></pre>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>MAPE: 0.24565533854198948 
-MAE: 0.09687401632068135 
-MSE: 0.013811700811380502</code></pre>
+<pre><code>MAPE: 0.15347452360520786 
+MAE: 0.060155303375532855 
+MSE: 0.006071706056646205</code></pre>
 </div>
 </div>
-<div id="cell-21" class="cell" data-execution_count="132">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>], y_pred[<span class="dv">0</span>:<span class="dv">17520</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Let’s visually see how our forecasts measure up to the actual values.</p>
+<div id="cell-23" class="cell" data-execution_count="159">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -849,8 +863,16 @@ MSE: 0.013811700811380502</code></pre>
 </figure>
 </div>
 </div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-14-output-4.png" class="img-fluid figure-img"></p>
+</figure>
 </div>
-<div id="cell-22" class="cell" data-execution_count="134">
+</div>
+</div>
+<p>We can plot the residuals to observe for any remaining seasonal patterns that weren’t captured by our model.</p>
+<div id="cell-25" class="cell" data-execution_count="160">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">17520</span>])</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">1000</span>])</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">336</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">336</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -876,6 +898,7 @@ MSE: 0.013811700811380502</code></pre>
 </div>
 </div>
 </div>
+<p>As can be seen, we’ve captured a good deal of the daily, weekly, and yearly seasonalities from the original data from our forecast. However, there remains additional patterns in the data that we haven’t accounted for. Specifically, it appears that during the first half of the year -in the summer months- the energy demand spikes much more frequently than in the latter half.</p>
 
 
 
