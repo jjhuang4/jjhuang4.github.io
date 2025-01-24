@@ -74,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-27208713591bdc81d15d2ab76ca6d3ec.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-096a3e80ce2fc443ab554b28b562d874.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -352,6 +352,8 @@ window.Quarto = {
 </div>
 </div>
 </div>
+<section id="eda" class="level3">
+<h3 class="anchored" data-anchor-id="eda">EDA</h3>
 <p>The magnitude of seasonal variations doesn’t appear to be influenced by the length of the time series, so I assume an additive decomposition to be the most appropriate such that</p>
 <p><span class="math inline">\(y_t = S_t + T_t + R_t\)</span></p>
 <p>where data is decomposed into seasonal, trend, and remainder components respectively.</p>
@@ -374,8 +376,8 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>Now let’s perform an STL decomposition to get an idea of the seasonal and trend-cycle components of our data.</p>
-<div id="cell-14" class="cell" data-execution_count="58">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>stl <span class="op">=</span> STLTransformer(return_components<span class="op">=</span><span class="va">True</span>)</span>
+<div id="cell-14" class="cell" data-execution_count="161">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>stl <span class="op">=</span> STLTransformer(return_components<span class="op">=</span><span class="va">True</span>, sp<span class="op">=</span><span class="dv">48</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>y_stl <span class="op">=</span> stl.fit_transform(electricity[<span class="st">'nswdemand'</span>])</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl[<span class="st">'transformed'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl[<span class="st">'seasonal'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span>
@@ -410,13 +412,20 @@ dtype: int64</code></pre>
 </div>
 </div>
 </div>
-<div id="cell-15" class="cell" data-execution_count="65">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="65">
-<pre><code>(&lt;Figure size 1200x800 with 3 Axes&gt;,
- array([&lt;Axes: ylabel='nswdemand'&gt;,
-        &lt;Axes: title={'center': 'Autocorrelation'}&gt;,
-        &lt;Axes: title={'center': 'Partial Autocorrelation'}&gt;], dtype=object))</code></pre>
+<p>Performing an STL transform with a periodicity of 48 (representing one day) eliminates the hourly seasonality from the time series, revealing the trend line as shown above, which appears to still contain weekly seasonality. We can make an educated guess that there’ll also be yearly seasonality, given the correlation between electricity demand and seasonal changes in weather. I’ll run STL transform again to extract out the weekly/yearly seasonalities.</p>
+<div id="cell-16" class="cell" data-execution_count="163">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>stl2 <span class="op">=</span> STLTransformer(return_components<span class="op">=</span><span class="va">True</span>, sp<span class="op">=</span><span class="dv">48</span><span class="op">*</span><span class="dv">7</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>y_stl2 <span class="op">=</span> stl2.fit_transform(y_stl[<span class="st">'trend'</span>])</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl2[<span class="st">'transformed'</span>][<span class="dv">0</span>:<span class="dv">17520</span>])</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl2[<span class="st">'seasonal'</span>][<span class="dv">0</span>:<span class="dv">2500</span>])</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl2[<span class="st">'trend'</span>][<span class="dv">0</span>:<span class="dv">17520</span>])</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl2[<span class="st">'resid'</span>][<span class="dv">0</span>:<span class="dv">17520</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
@@ -425,12 +434,25 @@ dtype: int64</code></pre>
 </figure>
 </div>
 </div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-10-output-3.png" class="img-fluid figure-img"></p>
+</figure>
 </div>
-<p>A closer look at the daily seasonality present in the data:</p>
-<div id="cell-17" class="cell" data-execution_count="66">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">96</span>])</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">48</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="66">
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-10-output-4.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>It becomes more complicated to eyeball any obvious seasonalities from the trend cycle after extracting the weekly seasonalities. Some R packages such as feasts may provide more powerful tools for breaking down the short/long term seasonalities and features in the series, but for now this works as EDA</p>
+<div id="cell-18" class="cell" data-execution_count="65">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="65">
 <pre><code>(&lt;Figure size 1200x800 with 3 Axes&gt;,
  array([&lt;Axes: ylabel='nswdemand'&gt;,
         &lt;Axes: title={'center': 'Autocorrelation'}&gt;,
@@ -443,43 +465,66 @@ dtype: int64</code></pre>
 </figure>
 </div>
 </div>
+</div>
+<p>A closer look at the daily seasonality present in the data:</p>
+<div id="cell-20" class="cell" data-execution_count="66">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">96</span>])</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">48</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="66">
+<pre><code>(&lt;Figure size 1200x800 with 3 Axes&gt;,
+ array([&lt;Axes: ylabel='nswdemand'&gt;,
+        &lt;Axes: title={'center': 'Autocorrelation'}&gt;,
+        &lt;Axes: title={'center': 'Partial Autocorrelation'}&gt;], dtype=object))</code></pre>
+</div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="index_files/figure-html/cell-11-output-3.png" class="img-fluid figure-img"></p>
+<p><img src="index_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-12-output-3.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
+<section id="prophet-model" class="level4">
+<h4 class="anchored" data-anchor-id="prophet-model">Prophet Model</h4>
 <p>Prophet is a model developed by Facebook for use in commercial forecasting applications; it has strong out of the box performance in data containing multiple seasonalities and holiday effects. I use a downgraded 1.1.5 version of Prophet due to optimization errors that arise with the 1.1.6 version.</p>
+<p>Hyndman does a brief breakdown of the model and its structure. Prophet works as an additive model:</p>
+<p><span class="math inline">\(y(t) = g(t) + s(t) + h(t) + \epsilon_t\)</span></p>
+<p>Which adds the trend <span class="math inline">\(g(t)\)</span> as a piecewise linear model, the seasonality <span class="math inline">\(s(t)\)</span> as fourier terms, the holiday effects <span class="math inline">\(h(t)\)</span> as dummy variables, and additional noise <span class="math inline">\(\epsilon_t\)</span>. The model estimates changepoints and other structures through a Bayesian MCMC approach. Facebook’s Prophet has cmdstan as a dependency, but I’ve found a very detailed breakdown/implementation of the model using PyMC in <a href="https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/">this blog post</a>.</p>
 <p>While the smallest level of granularity in some time series occurs through daily instances, this dataset has observations ever half-hour, meaning the period should be 48 for daily seasonality, 336 for weekly, and so on. We’ll have to add these as custom seasonalities to our Prophet model; this is accomplished by adding new custom seasonalities using the add_seasonality argument provided by the sktime wrapper.</p>
 <p>Since we’re using sktime, it has a slightly different way of handling add_seasonality() than in fbprophet; we have to add multiple custom seasonalities as a list of dictionaries to the constructor.</p>
-<div id="cell-19" class="cell" data-execution_count="157">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> electricity[<span class="st">'nswdemand'</span>]</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>y_train, y_test <span class="op">=</span> temporal_train_test_split(y, test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> Prophet(</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    seasonality_mode<span class="op">=</span><span class="st">'additive'</span>,</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    add_country_holidays<span class="op">=</span>{<span class="st">'country_name'</span>: <span class="st">'Australia'</span>},</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    yearly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    weekly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    daily_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    add_seasonality<span class="op">=</span>[{</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'daily-cycle'</span>,</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">48</span>, <span class="co"># period of 48 representing observations per day</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">12</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    {</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'weekly-cycle'</span>,</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">336</span>, <span class="co"># period of 336 representing 7 day (weekly) cycle</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">3</span></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    {</span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'yearly-cycle'</span>,</span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">17520</span>,</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">10</span></span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    }]</span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-22" class="cell" data-execution_count="157">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> electricity[<span class="st">'nswdemand'</span>]</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>y_train, y_test <span class="op">=</span> temporal_train_test_split(y, test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> Prophet(</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    seasonality_mode<span class="op">=</span><span class="st">'additive'</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    add_country_holidays<span class="op">=</span>{<span class="st">'country_name'</span>: <span class="st">'Australia'</span>},</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    yearly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    weekly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    daily_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    add_seasonality<span class="op">=</span>[{</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'daily-cycle'</span>,</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">48</span>, <span class="co"># period of 48 representing observations per day</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">12</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'weekly-cycle'</span>,</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">336</span>, <span class="co"># period of 336 representing 7 day (weekly) cycle</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">3</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'yearly-cycle'</span>,</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">17520</span>,</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">10</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    }]</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>19:06:49 - cmdstanpy - INFO - Chain [1] start processing
 19:07:16 - cmdstanpy - INFO - Chain [1] done processing</code></pre>
@@ -823,59 +868,26 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>We then evaluate model performance with mean average percentage error, mean absolute error, and mean squared error.</p>
-<div id="cell-21" class="cell" data-execution_count="158">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify forecasting horizon and pass on to forecasting algorithm</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> mean_absolute_error(y_test, y_pred)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-24" class="cell" data-execution_count="158">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify forecasting horizon and pass on to forecasting algorithm</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> mean_absolute_error(y_test, y_pred)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>MAPE: 0.15347452360520786 
 MAE: 0.060155303375532855 
 MSE: 0.006071706056646205</code></pre>
 </div>
 </div>
+<p>These look like pretty decent results to me!</p>
 <p>Let’s visually see how our forecasts measure up to the actual values.</p>
-<div id="cell-23" class="cell" data-execution_count="159">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-14-output-2.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-14-output-3.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-14-output-4.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>We can plot the residuals to observe for any remaining seasonal patterns that weren’t captured by our model.</p>
-<div id="cell-25" class="cell" data-execution_count="160">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">17520</span>])</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">1000</span>])</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">336</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">336</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-27" class="cell" data-execution_count="159">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -897,10 +909,47 @@ MSE: 0.006071706056646205</code></pre>
 </figure>
 </div>
 </div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-15-output-4.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can plot the residuals to observe for any remaining seasonal patterns that weren’t captured by our model.</p>
+<div id="cell-29" class="cell" data-execution_count="160">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">17520</span>])</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">1000</span>])</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">336</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">336</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 <p>As can be seen, we’ve captured a good deal of the daily, weekly, and yearly seasonalities from the original data from our forecast. However, there remains additional patterns in the data that we haven’t accounted for. Specifically, it appears that during the first half of the year -in the summer months- the energy demand spikes much more frequently than in the latter half.</p>
+<p>But I think this also shows how useful Prophet is in a situation where you’re able to clearly identify your seasonalities; without requiring any underlying knowledge of how the model works, it’s simple to fit a decent forecaster that captures most of the patterns in your data.</p>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
