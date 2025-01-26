@@ -222,8 +222,8 @@ window.Quarto = {
 
 
 <p>Forecasting electricity demand is an extremely relevant problem for energy providers, as it influences not only the cost of day to day operations but also the timeliness and effectiveness of preparing for extreme weather conditions. Additionally, providers have to account for variations in geographic locations, further increasing the complexity of forecasting tasks.</p>
-<p>In this blog post, I aim to explore the applications and performance of several forecasting methods for this task. I’m specifically using the Australian New South Wales Electricity Market dataset, which features the electricity price and demand of New South Wales and Victoria, as well as the amount transferred between the two states.</p>
-<p>The data contains 45,312 instances for the days from May 7, 1996 to December 5, 1998, with observations recorded every half hour in each 24 hour period. I account for this granularity in my approach.</p>
+<p>In this blog post, I aim to apply the Prophet forecasting model on the Australian New South Wales Electricity Market dataset, which features the electricity price and demand of New South Wales and Victoria, as well as the amount transferred between the two states.</p>
+<p>The data contains 45,312 instances for the days from May 7, 1996 to December 5, 1998, with observations recorded every half hour in each 24 hour period. I account for this granularity with a multiple seasonality approach.</p>
 <div id="cell-4" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>electricity.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -358,7 +358,7 @@ window.Quarto = {
 <p><span class="math inline">\(y_t = S_t + T_t + R_t\)</span></p>
 <p>where data is decomposed into seasonal, trend, and remainder components respectively.</p>
 <p>This data doesn’t contain any missing values:</p>
-<div id="cell-12" class="cell" data-execution_count="27">
+<div id="cell-12" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Checking for missing values</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>missing_values <span class="op">=</span> electricity.isna().<span class="bu">sum</span>()</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(missing_values)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -376,7 +376,7 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>Now let’s perform an STL decomposition to get an idea of the seasonal and trend-cycle components of our data.</p>
-<div id="cell-14" class="cell" data-execution_count="161">
+<div id="cell-14" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>stl <span class="op">=</span> STLTransformer(return_components<span class="op">=</span><span class="va">True</span>, sp<span class="op">=</span><span class="dv">48</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>y_stl <span class="op">=</span> stl.fit_transform(electricity[<span class="st">'nswdemand'</span>])</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl[<span class="st">'transformed'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span>
@@ -413,7 +413,7 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>Performing an STL transform with a periodicity of 48 (representing one day) eliminates the hourly seasonality from the time series, revealing the trend line as shown above, which appears to still contain weekly seasonality. We can make an educated guess that there’ll also be yearly seasonality, given the correlation between electricity demand and seasonal changes in weather. I’ll run STL transform again to extract out the weekly/yearly seasonalities.</p>
-<div id="cell-16" class="cell" data-execution_count="163">
+<div id="cell-16" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>stl2 <span class="op">=</span> STLTransformer(return_components<span class="op">=</span><span class="va">True</span>, sp<span class="op">=</span><span class="dv">48</span><span class="op">*</span><span class="dv">7</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>y_stl2 <span class="op">=</span> stl2.fit_transform(y_stl[<span class="st">'trend'</span>])</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>plot_series(y_stl2[<span class="st">'transformed'</span>][<span class="dv">0</span>:<span class="dv">17520</span>])</span>
@@ -449,44 +449,22 @@ dtype: int64</code></pre>
 </div>
 </div>
 </div>
-<p>It becomes more complicated to eyeball any obvious seasonalities from the trend cycle after extracting the weekly seasonalities. Some R packages such as feasts may provide more powerful tools for breaking down the short/long term seasonalities and features in the series, but for now this works as EDA</p>
-<div id="cell-18" class="cell" data-execution_count="65">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="65">
-<pre><code>(&lt;Figure size 1200x800 with 3 Axes&gt;,
- array([&lt;Axes: ylabel='nswdemand'&gt;,
-        &lt;Axes: title={'center': 'Autocorrelation'}&gt;,
-        &lt;Axes: title={'center': 'Partial Autocorrelation'}&gt;], dtype=object))</code></pre>
+<p>It becomes more complicated to eyeball any obvious seasonalities from the trend cycle after extracting the weekly seasonalities. Some R packages such as feasts may provide more powerful tools for breaking down the short/long term seasonalities and features in the series, but for now this works as EDA.</p>
+<p>A closer look at the daily seasonality present in the data (2 periods, 1 periods plotted below):</p>
+<div id="cell-19" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_series(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">96</span>])</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>plot_series(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">48</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
 <p><img src="index_files/figure-html/cell-11-output-2.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>A closer look at the daily seasonality present in the data:</p>
-<div id="cell-20" class="cell" data-execution_count="66">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">96</span>])</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>plot_correlations(electricity[<span class="st">'nswdemand'</span>][<span class="dv">0</span>:<span class="dv">48</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="66">
-<pre><code>(&lt;Figure size 1200x800 with 3 Axes&gt;,
- array([&lt;Axes: ylabel='nswdemand'&gt;,
-        &lt;Axes: title={'center': 'Autocorrelation'}&gt;,
-        &lt;Axes: title={'center': 'Partial Autocorrelation'}&gt;], dtype=object))</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-12-output-3.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
@@ -499,38 +477,39 @@ dtype: int64</code></pre>
 <p>Which adds the trend <span class="math inline">\(g(t)\)</span> as a piecewise linear model, the seasonality <span class="math inline">\(s(t)\)</span> as fourier terms, the holiday effects <span class="math inline">\(h(t)\)</span> as dummy variables, and additional noise <span class="math inline">\(\epsilon_t\)</span>. The model estimates changepoints and other structures through a Bayesian MCMC approach. Facebook’s Prophet has cmdstan as a dependency, but I’ve found a very detailed breakdown/implementation of the model using PyMC in <a href="https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/">this blog post</a>.</p>
 <p>While the smallest level of granularity in some time series occurs through daily instances, this dataset has observations ever half-hour, meaning the period should be 48 for daily seasonality, 336 for weekly, and so on. We’ll have to add these as custom seasonalities to our Prophet model; this is accomplished by adding new custom seasonalities using the add_seasonality argument provided by the sktime wrapper.</p>
 <p>Since we’re using sktime, it has a slightly different way of handling add_seasonality() than in fbprophet; we have to add multiple custom seasonalities as a list of dictionaries to the constructor.</p>
-<div id="cell-22" class="cell" data-execution_count="157">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> electricity[<span class="st">'nswdemand'</span>]</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>y_train, y_test <span class="op">=</span> temporal_train_test_split(y, test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> Prophet(</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    seasonality_mode<span class="op">=</span><span class="st">'additive'</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    add_country_holidays<span class="op">=</span>{<span class="st">'country_name'</span>: <span class="st">'Australia'</span>},</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    yearly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    weekly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    daily_seasonality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    add_seasonality<span class="op">=</span>[{</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'daily-cycle'</span>,</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">48</span>, <span class="co"># period of 48 representing observations per day</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">12</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    {</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'weekly-cycle'</span>,</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">336</span>, <span class="co"># period of 336 representing 7 day (weekly) cycle</span></span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">3</span></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    {</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'yearly-cycle'</span>,</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">17520</span>,</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">10</span></span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    }]</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-21" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> electricity[<span class="st">'nswdemand'</span>]</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>y_train, y_test <span class="op">=</span> temporal_train_test_split(y, test_size<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> Prophet(</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    seasonality_mode<span class="op">=</span><span class="st">'additive'</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    add_country_holidays<span class="op">=</span>{<span class="st">'country_name'</span>: <span class="st">'Australia'</span>},</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    yearly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    weekly_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    daily_seasonality<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    add_seasonality<span class="op">=</span>[{</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'daily-cycle'</span>,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">48</span>, <span class="co"># period of 48 representing observations per day</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">12</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'weekly-cycle'</span>,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">336</span>, <span class="co"># period of 336 representing 7 day (weekly) cycle</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">3</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'name'</span>: <span class="st">'yearly-cycle'</span>,</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'period'</span>: <span class="dv">17520</span>,</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fourier_order'</span>: <span class="dv">10</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    }]</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>forecaster.fit(y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>19:06:49 - cmdstanpy - INFO - Chain [1] start processing
-19:07:16 - cmdstanpy - INFO - Chain [1] done processing</code></pre>
+<pre><code>Importing plotly failed. Interactive plots will not work.
+19:47:37 - cmdstanpy - INFO - Chain [1] start processing
+19:48:04 - cmdstanpy - INFO - Chain [1] done processing</code></pre>
 </div>
-<div class="cell-output cell-output-display" data-execution_count="157">
-<style>#sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 {
+<div class="cell-output cell-output-display" data-execution_count="5">
+<style>#sk-a278bab1-eefd-4d76-8992-e12e879a0261 {
     /* Definition of color scheme common for light and dark mode */
     --sklearn-color-text: black;
     --sklearn-color-line: gray;
@@ -555,15 +534,15 @@ dtype: int64</code></pre>
     }
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 {
     color: var(--sklearn-color-text);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 pre {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 pre {
     padding: 0;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-hidden--visually {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 input.sk-hidden--visually {
     border: 0;
     clip: rect(1px 1px 1px 1px);
     clip: rect(1px, 1px, 1px, 1px);
@@ -575,7 +554,7 @@ dtype: int64</code></pre>
     width: 1px;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-dashed-wrapped {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-dashed-wrapped {
     border: 1px dashed var(--sklearn-color-line);
     margin: 0 0.4em 0.5em 0.4em;
     box-sizing: border-box;
@@ -583,7 +562,7 @@ dtype: int64</code></pre>
     background-color: var(--sklearn-color-background);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-container {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-container {
     /* jupyter's `normalize.less` sets `[hidden] { display: none; }`
        but bootstrap.min.css set `[hidden] { display: none !important; }`
        so we also need the `!important` here to be able to override the
@@ -593,7 +572,7 @@ dtype: int64</code></pre>
     position: relative;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-text-repr-fallback {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-text-repr-fallback {
     display: none;
   }
 
@@ -609,14 +588,14 @@ dtype: int64</code></pre>
 
   /* Parallel-specific style estimator block */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item::after {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel-item::after {
     content: "";
     width: 100%;
     border-bottom: 2px solid var(--sklearn-color-text-on-default-background);
     flex-grow: 1;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel {
     display: flex;
     align-items: stretch;
     justify-content: center;
@@ -624,28 +603,28 @@ dtype: int64</code></pre>
     position: relative;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel-item {
     display: flex;
     flex-direction: column;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:first-child::after {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel-item:first-child::after {
     align-self: flex-end;
     width: 50%;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:last-child::after {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel-item:last-child::after {
     align-self: flex-start;
     width: 50%;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-parallel-item:only-child::after {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-parallel-item:only-child::after {
     width: 0;
   }
 
   /* Serial-specific style estimator block */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-serial {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-serial {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -663,14 +642,14 @@ dtype: int64</code></pre>
 
   /* Pipeline and ColumnTransformer style (default) */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-toggleable {
     /* Default theme specific background. It is overwritten whether we have a
     specific estimator or a Pipeline/ColumnTransformer */
     background-color: var(--sklearn-color-background);
   }
 
   /* Toggleable label */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 label.sk-toggleable__label {
     cursor: pointer;
     display: block;
     width: 100%;
@@ -680,7 +659,7 @@ dtype: int64</code></pre>
     text-align: center;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label-arrow:before {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 label.sk-toggleable__label-arrow:before {
     /* Arrow on the left of the label */
     content: "▸";
     float: left;
@@ -688,13 +667,13 @@ dtype: int64</code></pre>
     color: var(--sklearn-color-icon);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 label.sk-toggleable__label-arrow:hover:before {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 label.sk-toggleable__label-arrow:hover:before {
     color: var(--sklearn-color-text);
   }
 
   /* Toggleable content - dropdown */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable__content {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-toggleable__content {
     max-height: 0;
     max-width: 0;
     overflow: hidden;
@@ -702,27 +681,27 @@ dtype: int64</code></pre>
     background-color: var(--sklearn-color-level-0);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-toggleable__content pre {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-toggleable__content pre {
     margin: 0.2em;
     border-radius: 0.25em;
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-0);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-toggleable__control:checked~div.sk-toggleable__content {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 input.sk-toggleable__control:checked~div.sk-toggleable__content {
     /* Expand drop-down */
     max-height: 200px;
     max-width: 100%;
     overflow: auto;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {
     content: "▾";
   }
 
   /* Pipeline/ColumnTransformer-specific style */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-2);
   }
@@ -730,38 +709,38 @@ dtype: int64</code></pre>
   /* Estimator-specific style */
 
   /* Colorize estimator box */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {
     /* unfitted */
     background-color: var(--sklearn-color-level-2);
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label.sk-toggleable__label,
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label label.sk-toggleable__label,
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label label {
     /* The background is the default theme color */
     color: var(--sklearn-color-text-on-default-background);
   }
 
   /* On hover, darken the color of the background */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label:hover label.sk-toggleable__label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label:hover label.sk-toggleable__label {
     color: var(--sklearn-color-text);
     background-color: var(--sklearn-color-level-2);
   }
 
   /* Estimator label */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label label {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label label {
     font-family: monospace;
     font-weight: bold;
     display: inline-block;
     line-height: 1.2em;
   }
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-label-container {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-label-container {
     text-align: center;
   }
 
   /* Estimator-specific */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-estimator {
     font-family: monospace;
     border: 1px dotted var(--sklearn-color-border-box);
     border-radius: 0.25em;
@@ -771,7 +750,7 @@ dtype: int64</code></pre>
   }
 
   /* on hover */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 div.sk-estimator:hover {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 div.sk-estimator:hover {
     background-color: var(--sklearn-color-level-2);
   }
 
@@ -828,7 +807,7 @@ dtype: int64</code></pre>
 
   /* "?"-specific style due to the `<a>` HTML tag */
 
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 a.estimator_doc_link {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 a.estimator_doc_link {
     float: right;
     font-size: 1rem;
     line-height: 1em;
@@ -843,12 +822,12 @@ dtype: int64</code></pre>
   }
 
   /* On hover */
-  #sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651 a.estimator_doc_link:hover {
+  #sk-a278bab1-eefd-4d76-8992-e12e879a0261 a.estimator_doc_link:hover {
     background-color: var(--sklearn-color-level-3);
     color: var(--sklearn-color-background);
     text-decoration: none;
   }
-</style><div id="sk-6ec5ff87-28d0-4a4d-8459-2cf09cf8a651" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
+</style><div id="sk-a278bab1-eefd-4d76-8992-e12e879a0261" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
         add_seasonality=[{'fourier_order': 12, 'name': 'daily-cycle',
                           'period': 48},
                          {'fourier_order': 3, 'name': 'weekly-cycle',
@@ -856,7 +835,7 @@ dtype: int64</code></pre>
                          {'fourier_order': 10, 'name': 'yearly-cycle',
                           'period': 17520}],
         daily_seasonality=True, weekly_seasonality=True,
-        yearly_seasonality=True)</pre><b>Please rerun this cell to show the HTML repr or trust the notebook.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="UUID('93e03925-fc87-4bdd-857a-123f7f330cb8')" type="checkbox" checked=""><label for="UUID('93e03925-fc87-4bdd-857a-123f7f330cb8')" class="sk-toggleable__label sk-toggleable__label-arrow">Prophet<a class="sk-estimator-doc-link" rel="noreferrer" target="_blank" href="https://www.sktime.net/en/v0.35.0/api_reference/auto_generated/sktime.forecasting.fbprophet.Prophet.html">?<span>Documentation for Prophet</span></a></label><div class="sk-toggleable__content"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
+        yearly_seasonality=True)</pre><b>Please rerun this cell to show the HTML repr or trust the notebook.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="UUID('019046bc-40cb-48ea-b22f-2f770c3216f2')" type="checkbox" checked=""><label for="UUID('019046bc-40cb-48ea-b22f-2f770c3216f2')" class="sk-toggleable__label sk-toggleable__label-arrow">Prophet<a class="sk-estimator-doc-link" rel="noreferrer" target="_blank" href="https://www.sktime.net/en/v0.35.0/api_reference/auto_generated/sktime.forecasting.fbprophet.Prophet.html">?<span>Documentation for Prophet</span></a></label><div class="sk-toggleable__content"><pre>Prophet(add_country_holidays={'country_name': 'Australia'},
         add_seasonality=[{'fourier_order': 12, 'name': 'daily-cycle',
                           'period': 48},
                          {'fourier_order': 3, 'name': 'weekly-cycle',
@@ -868,26 +847,60 @@ dtype: int64</code></pre>
 </div>
 </div>
 <p>We then evaluate model performance with mean average percentage error, mean absolute error, and mean squared error.</p>
-<div id="cell-24" class="cell" data-execution_count="158">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify forecasting horizon and pass on to forecasting algorithm</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> mean_absolute_error(y_test, y_pred)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-23" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify forecasting horizon and pass on to forecasting algorithm</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> mean_absolute_error(y_test, y_pred)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>MAPE: 0.15347452360520786 
 MAE: 0.060155303375532855 
 MSE: 0.006071706056646205</code></pre>
 </div>
 </div>
-<p>These look like pretty decent results to me!</p>
+<p>These look like pretty decent results for a model that isn’t being exhaustively tuned/optimized (we could go on further with grid-search, cross validation, using other metrics like AIC or BIC, but this is already a solid benchmark for Prophet’s capabilities).</p>
 <p>Let’s visually see how our forecasts measure up to the actual values.</p>
-<div id="cell-27" class="cell" data-execution_count="159">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-26" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-14-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-14-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-14-output-4.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can plot the residuals to observe for any remaining seasonal patterns that weren’t captured by our model.</p>
+<div id="cell-28" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">17520</span>])</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">1000</span>])</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">336</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">336</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -909,25 +922,27 @@ MSE: 0.006071706056646205</code></pre>
 </figure>
 </div>
 </div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-15-output-4.png" class="img-fluid figure-img"></p>
-</figure>
 </div>
-</div>
-</div>
-<p>We can plot the residuals to observe for any remaining seasonal patterns that weren’t captured by our model.</p>
-<div id="cell-29" class="cell" data-execution_count="160">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">17520</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">17520</span>])</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">1000</span>])</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">336</span>]<span class="op">-</span>y_pred[<span class="dv">0</span>:<span class="dv">336</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
+<p>As can be seen, we’ve captured a good deal of the daily, weekly, and yearly seasonalities from the original data from our forecast. However, there remains additional patterns in the data that we haven’t accounted for. Specifically, it appears that during the first half of the year -in the summer months- the energy demand spikes much more frequently than in the latter half, likely due to the use of air conditioning.</p>
+<p>This shows how useful Prophet is in a situation where you’re able to clearly identify your seasonalities; without requiring any underlying knowledge of how the model works, it’s simple to fit a decent forecaster that captures most of the patterns in your data.</p>
+</section>
+</section>
+<section id="multiple-seasonal-trend-forecasting" class="level3">
+<h3 class="anchored" data-anchor-id="multiple-seasonal-trend-forecasting">Multiple Seasonal-Trend Forecasting</h3>
+<p>Other methods are also just as performant. For example, the Multiple Seasonal-Trend Decomposition using Loess (MSTL) algorithm developed by <a href="https://arxiv.org/abs/2107.13462">Bandara, Hyndman, and Bergmeir</a> handles multiple seasonal patterns well, which is exactly what our dataset exhibits. We saw above that I had to perform regular STL multiple times on the data because it exhibited multiple levels of seasonality at the daily, weekly, and yearly levels. With MSTL we still assume an additive decomposition, this time with the following structure:</p>
+<p><span class="math inline">\(y_t = S_t^{(1)} + S_t^{(2)} + ... + S_t^{(n)} + T_t + R_t\)</span></p>
+<p>With multiple terms for multiple seasonal components.</p>
+<div id="cell-31" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mstl <span class="op">=</span> MSTL(periods<span class="op">=</span>[<span class="dv">48</span>, <span class="dv">48</span><span class="op">*</span><span class="dv">7</span>], return_components<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>mstl_components <span class="op">=</span> mstl.fit_transform(y)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(mstl_components.columns)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'trend'</span>][<span class="dv">0</span>:<span class="dv">7500</span>])</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'seasonal_48'</span>][<span class="dv">0</span>:<span class="dv">7500</span>])</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'seasonal_336'</span>][<span class="dv">0</span>:<span class="dv">7500</span>])</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'resid'</span>][<span class="dv">0</span>:<span class="dv">7500</span>])</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>plot_series(y[<span class="dv">0</span>:<span class="dv">7500</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Index(['trend', 'resid', 'seasonal_48', 'seasonal_336'], dtype='object')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div>
@@ -943,12 +958,105 @@ MSE: 0.006071706056646205</code></pre>
 </figure>
 </div>
 </div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-4.png" class="img-fluid figure-img"></p>
+</figure>
 </div>
-<p>As can be seen, we’ve captured a good deal of the daily, weekly, and yearly seasonalities from the original data from our forecast. However, there remains additional patterns in the data that we haven’t accounted for. Specifically, it appears that during the first half of the year -in the summer months- the energy demand spikes much more frequently than in the latter half.</p>
-<p>But I think this also shows how useful Prophet is in a situation where you’re able to clearly identify your seasonalities; without requiring any underlying knowledge of how the model works, it’s simple to fit a decent forecaster that captures most of the patterns in your data.</p>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-5.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-16-output-6.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>A closer look at the seasonal components for daily (period=48) and weekly (period=336) seasonalities:</p>
+<div id="cell-33" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'seasonal_48'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>plot_series(mstl_components[<span class="st">'seasonal_336'</span>][<span class="dv">0</span>:<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-17-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-17-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>These separate seasonal components reflecct the daily and weekly cycles of energy demand that I saw earlier using STL iteratively on the dataset. We can see how electricity demand falls at certain parts of the day and peaks in others. Additionally, we see how electricity demand falls in two days of the week (weekend) as opposed to working days. We can incorporate the results of the MSTL inside sktime’s StatsForecastMSTL class model, which interfaces with Nixtla’s implementation.</p>
+<p>I fit the forecaster with arguments for daily, weekly, and yearly seasonalities relative to the dataset:</p>
+<div id="cell-36" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> StatsForecastMSTL(season_length<span class="op">=</span>[<span class="dv">48</span>, <span class="dv">48</span><span class="op">*</span><span class="dv">7</span>, <span class="dv">48</span><span class="op">*</span><span class="dv">365</span>])</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>forecaster <span class="op">=</span> model.fit(y<span class="op">=</span>y_train)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And now for evaluating model performance:</p>
+<div id="cell-38" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> forecaster.predict(np.arange(<span class="bu">len</span>(y_test)))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>mape <span class="op">=</span> mean_absolute_percentage_error(y_test, y_pred)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> mean_absolute_error(y_test, y_pred)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> mean_squared_error(y_test, y_pred)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAPE: </span><span class="sc">{</span>mape<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MAE: </span><span class="sc">{</span>mae<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss">MSE: </span><span class="sc">{</span>mse<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>MAPE: 0.1522244466461589 
+MAE: 0.0591753040252963 
+MSE: 0.005841216097518591</code></pre>
+</div>
+</div>
+<div id="cell-39" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test, y_pred, labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">5000</span>], y_pred[<span class="dv">0</span>:<span class="dv">5000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">1000</span>], y_pred[<span class="dv">0</span>:<span class="dv">1000</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plot_series(y_test[<span class="dv">0</span>:<span class="dv">192</span>], y_pred[<span class="dv">0</span>:<span class="dv">192</span>], labels<span class="op">=</span>[<span class="st">"y_test"</span>, <span class="st">"y_pred"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-20-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-20-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-20-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-20-output-4.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>We can see that forecasting using this method performs just as, if not slightly better than Prophet. In the background, the series is decomposed with MSTL and then the trend and seasonality are forecasted using various other models (can consult this <a href="https://www.sktime.net/en/stable/api_reference/auto_generated/sktime.forecasting.statsforecast.StatsForecastMSTL.html">documentation</a> to find out more).</p>
+<p>We’re able to capture the daily, weekly, and yearly seasonalities that we saw in previous stages inside this forecast, but one thing of note is that this method was incredibly inefficient on the dataset, which makes sense. Given seasonal periods of length 48, 336, and 17520 (representing daily, weekly, and yearly cycles) the model has to estimate many more coefficients and the overall fitting process is much more computationally expensive (it took me around 20 minutes to run the model fitting on my device).</p>
+<p>Compare this to the Prophet model, where we were able to fit the model in just 30 seconds by adding exogenous Fourier terms to account for the seasonalities, and it’s easy to see the tradeoffs.</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
