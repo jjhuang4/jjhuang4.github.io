@@ -18,6 +18,13 @@
     "href": "index.html",
     "title": "Blog",
     "section": "",
-    "text": "Benchmarking Model Performance on Australian Electricity Demand Forecasting\n\n\n\n\n\n\ntime-series\n\n\nforecasting\n\n\n\n\n\n\n\n\n\nJan 20, 2025\n\n\nJeffrey Huang\n\n\n\n\n\n\nNo matching items"
+    "text": "Diving into Factorial Designs in Causal Inference\n\n\n\n\n\n\ncausal-inference\n\n\nresearch\n\n\n\n\n\n\n\n\n\nFeb 27, 2025\n\n\nJeffrey Huang\n\n\n\n\n\n\n\n\n\n\n\n\nBenchmarking Model Performance on Australian Electricity Demand Forecasting\n\n\n\n\n\n\ntime-series\n\n\nforecasting\n\n\n\n\n\n\n\n\n\nJan 20, 2025\n\n\nJeffrey Huang\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/2025-2-27/index.html",
+    "href": "posts/2025-2-27/index.html",
+    "title": "Diving into Factorial Designs in Causal Inference",
+    "section": "",
+    "text": "One key paradigm in causal inference literature is the Rubin causal model, also known as the potential outcome framework. It poses that given an individual \\(Y_i\\), we can define two theoretical variables \\(Y_i(1)\\) and \\(Y_i(0)\\), indicating whether a unit received treatment (the treated) or did not (the control), respectively.\nThis is often defined with the following equation modeling these two states of the world:\n\\(Y_i = D_i Y_i(1) + (1-D_i) Y_i(0)\\)\nWith \\(D_i={0, 1}\\) functioning as an indicator for a binary treatment. And from there on our unit level treatment effect is the difference \\(Y_i(1)-Y_i(0)\\) for each unit i. Herein lies what Rubin coins the “fundamental problem of causal inference”, that we simply cannot observe the both states of the world, known as potential outcomes, as once.\nFortunately, this field has been studied enough that we have a set of assumptions (stable unit treatment value, conditional independence) and methods (regression, matching, difference in differences, etc) that allow us to handle a variety of scenarios, both in an experimental and observational setting.\nBut it’s not always enough to draw the line at just one treatment effect; it’s realistic to expect that we’ll sometimes want to look at how multiple treatments will affect an outcome, or interactions between this treatments even. That makes for exciting ground to break in this field."
   }
 ]
