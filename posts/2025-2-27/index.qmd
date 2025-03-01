@@ -2,6 +2,7 @@
 title: "Diving into Factorial Designs in Causal Inference"
 author: "Jeffrey Huang"
 date: "2025-02-27"
+image: "image.jpg"
 categories: [causal-inference, research]
 ---
 
@@ -11,8 +12,15 @@ This is often defined with the following equation modeling these two states of t
 
 $Y_i = D_i Y_i(1) + (1-D_i) Y_i(0)$
 
-With $D_i={0, 1}$ functioning as an indicator for a binary treatment. And from there on our unit level treatment effect is the difference $Y_i(1)-Y_i(0)$ for each unit i. Herein lies what Rubin coins the "fundamental problem of causal inference", that we simply cannot observe the both states of the world, known as potential outcomes, as once.
+With $D_i={0, 1}$ functioning as an indicator for a binary treatment. And from there on our unit level treatment effect is the difference $Y_i(1)-Y_i(0)$ for each unit i. Herein lies what Rubin coins the "fundamental problem of causal inference", that we simply cannot observe the both states of the world, known as potential outcomes, at once.
 
 Fortunately, this field has been studied enough that we have a set of assumptions (stable unit treatment value, conditional independence) and methods (regression, matching, difference in differences, etc) that allow us to handle a variety of scenarios, both in an experimental and observational setting.
 
 But it's not always enough to draw the line at just *one* treatment effect; it's realistic to expect that we'll sometimes want to look at how multiple treatments will affect an outcome, or interactions between this treatments even. That makes for exciting ground to break in this field. 
+
+### Paper Review
+To be perfectly frank, looking at the latest developments on this topic is like trying to translate the arcane. But I've been fortunate to have been recommended a couple of papers that provide a solid enough intuition to interact with the rest of the literature.
+
+One of the two is a 2018 paper from Dasgupta et al, elegantly builds onto the existing potential outcomes model to create a model for $2^k$ factorial designs. Say we are given $K$ binary factors, then let $z$ be a treatment combination of those factors given by a $K$-dimensional vector of -1's and 1's to represent negative/positive levels. This then gives us $Z$, the set of $2^K$ treatment combinations. The paper makes it clear here that, under the stable unit treatment value assumption (SUTVA) we assert that all the potential outcomes for a unit $Y_i$ are completely explained by its assigned treatment combinations $z$. The potential outcome matrix $Y$ for $N$ units as a $N \times 2^K$ matrix.
+
+Deriving the average treatment effect $\bar{ATE} = \bar{Y(1)} - \bar{Y(0)}$ is a pretty standard estimator that gives us good options for inference under certain assumptions with a randomized experiment.
