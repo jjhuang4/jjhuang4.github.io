@@ -41,13 +41,13 @@ The $g$ vector simply extends this exercise: Recall that under Dasgupta's design
 
 Note that after all of this, we've derived exactly $2^{K-1}$ $g$ vectors. In general, at the end of this process you'll get a vector representing the $K$-way interaction between all the factors, represented by $g_{J-1}$ where $J=2^{K}$, and so we have $J-1$ total individual $g$ vectors, each one of length $J$, altogether representing factorial main and interaction effects.
 
-Finally, we can express the factorial effect for a unit $i$ defined by $g_j$ as a linear combination of $i$'s potential outcomes, denoted by $\tau_ij$ and expressed as:
+Finally, we can express the factorial effect for a unit $i$ defined by $g_j$ as a linear combination of $i$'s potential outcomes, denoted by $\tau_{ij}$ and expressed as:
 
-$\tau_ij = 2^{-(K-1)} {g_j}^{'} Y_i$
+$\tau_{ij} = 2^{-(K-1)} {g_j}^{'} Y_i$
 
 And this can be used to derive the sample factorial estimate:
 
-$\bar\tau_.j = \frac{1}{N}\sum_{i=1}^{N}\tau_ij = 2^{-(K-1)} {g_j}^{'} \bar Y$
+$\bar\tau_{.j} = \frac{1}{N}\sum_{i=1}^{N}\tau_{ij} = 2^{-(K-1)} {g_j}^{'} \bar Y$
 
 And voila! We now have an extension of the Rubin Causal framework to estimate factorial effects as we would for a single treatment.
 
