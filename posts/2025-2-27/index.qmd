@@ -14,7 +14,7 @@ $Y_i = D_i Y_i(1) + (1-D_i) Y_i(0)$
 
 With $D_i={0, 1}$ functioning as an indicator for a binary treatment. And from there on our unit level treatment effect is the difference $Y_i(1)-Y_i(0)$ for each unit $i$. Herein lies what Rubin coins the "fundamental problem of causal inference", that we simply cannot observe the both states of the world, known as potential outcomes, at once.
 
-Fortunately, this field has been studied enough that we have a set of assumptions (stable unit treatment value, conditional independence) and methods (regression, matching, difference in differences, etc) that allow us to handle a variety of scenarios, both in an experimental and observational setting. (I really recommend Scott Cunningham's [The Mixtape](https://mixtape.scunning.com/). it gives a solid rundown on most causal inference methods and I've been using it to get up to speed in this topic.)
+Fortunately, this field has been studied enough that we have a set of assumptions (stable unit treatment value, conditional independence) and methods (regression, matching, difference in differences, etc) that allow us to handle a variety of scenarios, both in an experimental and observational setting. (I really recommend Scott Cunningham's [The Mixtape](https://mixtape.scunning.com/). It gives a solid rundown on most causal inference methods and I've been using it to get up to speed in this topic.)
 
 But it's not always enough to draw the line at just *one* treatment effect; it's realistic to expect that we'll sometimes want to look at how multiple treatments will affect an outcome, or interactions between this treatments even. A scenario where there are interactions between multiple treatments is called a factorial design, and while there's a long history in studying causal methods in this space,it still maintains relevance, and there's a lot of exciting ground to break in research. 
 
@@ -43,11 +43,11 @@ Note that after all of this, we've derived exactly $2^{K-1}$ $g$ vectors. In gen
 
 Finally, we can express the factorial effect for a unit $i$ defined by $g_j$ as a linear combination of $i$'s potential outcomes, denoted by $\tau_ij$ and expressed as:
 
-$ \tau_ij = 2^{-(K-1)} {g_j}^{'} Y_i $
+$\tau_ij = 2^{-(K-1)} {g_j}^{'} Y_i$
 
 And this can be used to derive the sample factorial estimate:
 
-$\bar\tau_.j = \frac{1}{N}\sum_{i=1}^{N}\tau_ij = 2^{-(K-1)} {g_j}^{'} \bar Y$.
+$\bar\tau_.j = \frac{1}{N}\sum_{i=1}^{N}\tau_ij = 2^{-(K-1)} {g_j}^{'} \bar Y$
 
 And voila! We now have an extension of the Rubin Causal framework to estimate factorial effects as we would for a single treatment.
 
